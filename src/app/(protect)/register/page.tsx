@@ -1,0 +1,117 @@
+"use client";
+
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import * as yup from "yup";
+import axios from "../../config/axios";
+import { toast } from "react-toastify";
+import { getTokens, setTokens } from "@/app/utils/local-storage";
+
+interface IRegisterProps {}
+
+const schema = yup.object().shape({
+  email: yup.string().email().required("กรุณากรอกอีเมล์"),
+  password: yup.string().required("กรุณากรอกรหัสผ่าน"),
+  confirmPassword: yup
+    .string()
+    .required("กรุณายืนยันรหัสผ่าน")
+    .oneOf([yup.ref("password")], "รหัสผ่านไม่ตรงกัน"),
+});
+
+const Register: React.FunctionComponent<IRegisterProps> = (props) => {
+  const methods = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+    mode: "onBlur",
+  });
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting, isDirty },
+    reset,
+  } = methods;
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      const response = await axios.post("/auth/register", {
+        email: data.email,
+        password: data.password,
+      });
+
+      setTokens(response.data.data.token);
+
+      toast.success("Register success");
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error.response.data.message);
+    }
+  });
+
+  return (
+    <div
+      className="flex flex-col items-center justify-center min-h-screen py-2"
+      style={{ backgroundColor: "#f7f7f7" }}
+    >
+      <h1 className="text-2xl font-bold">Register</h1>
+      <form onSubmit={onSubmit} className="w-full max-w-md">
+        <div className="flex flex-col mt-4">
+          <label htmlFor="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            className="p-2 border border-gray-300 rounded mt-1"
+            {...register("email")}
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm">{errors.email.message}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col mt-4">
+          <label htmlFor="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            className="p-2 border border-gray-300 rounded mt-1"
+            {...register("password")}
+          />
+          {errors.password && (
+            <p className="text-red-500 text-sm">{errors.password.message}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col mt-4">
+          <label htmlFor="confirmPassword">Confirm Password</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            className="p-2 border border-gray-300 rounded mt-1"
+            {...register("confirmPassword")}
+          />
+          {errors.confirmPassword && (
+            <p className="text-red-500 text-sm">
+              {errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="bg-blue-500 text-white p-2 rounded mt-4"
+          disabled={isSubmitting || !isDirty}
+        >
+          Register
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default Register;
